@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Wall of Text (Alpha)</title>
+    <link
+      rel="prelaod"
+      href="https://cdn.jsdelivr.net/npm/bulma@0.9.3/css/bulma.min.css"
+      as="style"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bulma@0.9.3/css/bulma.min.css"
+    />
+    <script
+      defer
+      src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"
+    ></script>
+    <!-- Alpine.js just doesn't want to work with this...-->
+    <script src="/__/firebase/9.6.10/firebase-app-compat.js"></script>
+    <script src="/__/firebase/9.6.10/firebase-auth-compat.js"></script>
+    <script src="/firebaseconfig.js" type="text/javascript"></script>
+    <script type="text/javascript">
+      function handleCleanup() {
+        document.getElementById("log-in").textContent = "Log in"
+        document.getElementById("log-in").onclick = () => {
+          window.location = "/account/login.html"
+        }
+        document.getElementById("username-change").disabled = true
+        document.getElementById("username-change").title =
+          "Log in to change your username"
+        document.getElementById("username").textContent = "Not logged in"
+        document.getElementById("delete").disabled = true
+        document.getElementById("delete").title =
+          "You must be logged in to delete your account"
+      }
+      firebase.initializeApp(firebaseConfig)
+      firebase.auth().onAuthStateChanged(
+        (user) => {
+          if (user) {
+            console.dir(user)
+            // User is signed in.
+            var displayName = user.displayName
+            var email = user.email
+            var emailVerified = user.emailVerified
+            var photoURL = user.photoURL
+            var uid = user.uid
+            var phoneNumber = user.phoneNumber
+            var providerData = user.providerData
+            var isAnonymous = user.isAnonymous
+            user.getIdToken().then(function (accessToken) {
+              document.getElementById("log-in").textContent = "Log out"
+              document.getElementById("log-in").onclick = () => {
+                isAnonymous ? user.delete() : firebase.auth().signOut()
+                handleCleanup()
+              }
+              if (isAnonymous) {
+                document.getElementById("username").textContent = "anonymous"
+                document.getElementById("username-change").disabled = true
+                document.getElementById("username-change").title =
+                  "Anonymous users cannot change their username"
+              } else {
+                document.getElementById("username").textContent = "tastykiwi"
+                document.getElementById("username-change").disabled = false
+              }
+              document.getElementById("delete").onclick = () => {
+                if (!window.confirm("Are you sure?")) {
+                  return
+                }
+                user.delete()
+                handleCleanup()
+              }
+              console.dir({
+                displayName: displayName,
+                email: email,
+                emailVerified: emailVerified,
+                phoneNumber: phoneNumber,
+                photoURL: photoURL,
+                uid: uid,
+                accessToken: accessToken,
+                providerData: providerData,
+                isAnonymous: isAnonymous,
+              })
+            })
+          } else {
+            // User is signed out.
+            handleCleanup()
+          }
+        },
+        function (error) {
+          console.log(error)
+        }
+      )
+    </script>
+  </head>
+  <body>
+    <nav class="navbar" role="navigation" aria-label="main navigation">
+      <div class="navbar-brand">
+        <a class="navbar-item is-unselectable" href="/">
+          <h1 class="navbar-item title ">Wall of Text</h1>
+          <span class="tag is-danger is-light is-small mb-4">Alpha</span>
+        </a>
+        <div class="navbar-item">
+          <a class="navbar-item" href="/account/">Account</a>
+          <a class="navbar-item" href="/board/list.html">Boards</a>
+        </div>
+      </div>
+    </nav>
+    <section class="section">
+      <div class="container content">
+        <h1 class="title">My Account</h1>
+        <h3>Username:</h3>
+        <div class="field is-grouped">
+          <p
+            class="control has-text-weight-semibold is-align-self-center"
+            id="username"
+          ></p>
+          <button class="control button is-primary" id="username-change">
+            Change
+          </button>
+        </div>
+        <button class="button is-primary" id="log-in"></button>
+        <button class="button is-danger" id="delete">Delete account</button>
+      </div>
+    </section>
+    <footer class="footer">
+      <div class="content has-text-centered">
+        <p>
+          Made with ❤ by
+          <a target="_blank" href="https://tastykiwi.ml/">Tasty Kiwi</a>. The
+          website's
+          <a href="https://github.com/Tasty-Kiwi/Wall-of-Text">source code</a>
+          is licensed under
+          <a target="_blank" href="https://dbad-license.org/"
+            >Don't Be a Dick Public License</a
+          >.
+        </p>
+        <p>
+          Powered by
+          <a target="_blank" href="https://firebase.google.com/">Firebase</a>,
+          <a target="_blank" href="https://bulma.io/">Bulma</a> and
+          <a target="_blank" href="https://moment.github.io/luxon/">Luxon</a>.
+        </p>
+        <p>
+          <a href="/info/terms.html">Terms of Service</a> &bullet;
+          <a href="/info/privacy.html">Privacy Policy</a>
+        </p>
+      </div>
+    </footer>
+  </body>
+</html>

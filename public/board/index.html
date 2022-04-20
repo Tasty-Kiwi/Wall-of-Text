@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Wall of Text (Alpha)</title>
+  <link
+    rel="preload"
+    href="https://cdn.jsdelivr.net/npm/bulma@0.9.3/css/bulma.min.css"
+    as="style"
+  />
+  <link
+    rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/bulma@0.9.3/css/bulma.min.css"
+  />
+  <style>
+    [x-cloak] { 
+      display: none !important; 
+    }
+    html {
+      scroll-behavior: smooth;
+    }
+  </style>
+  <script
+  defer
+  src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"
+  ></script>
+  <script defer src="/__/firebase/9.6.10/firebase-app-compat.js"></script>
+  <!-- include only the Firebase features as you need -->
+  <script defer src="/__/firebase/9.6.10/firebase-auth-compat.js"></script>
+  <!--<script defer src="/__/firebase/9.6.10/firebase-database-compat.js"></script>-->
+  <script
+  defer
+  src="/__/firebase/9.6.10/firebase-firestore-compat.js"
+  ></script>
+  <script
+  src="https://cdn.jsdelivr.net/npm/luxon@2.3.1/build/global/luxon.min.js"
+  integrity="sha256-e2xkOE+oa0Ux7mVa39RFbhewJ4rMMlud92zYs61NHFY="
+  crossorigin="anonymous"
+  ></script>
+  <script
+  defer
+  src="https://kit.fontawesome.com/<kit-id>.js"
+  crossorigin="anonymous"
+  ></script>
+  <script>
+    const searchParams = new URL(window.location.href).searchParams
+    if(searchParams.get("topic") === "" || searchParams.get("topic") === null) {
+      window.location.replace("/board/list.html")
+    }
+  </script>
+</head>
+<body x-data="{ searchParams: new URL(window.location.href).searchParams }">
+  <nav class="navbar" role="navigation" aria-label="main navigation">
+    <div class="navbar-brand">
+      <a class="navbar-item is-unselectable" href="/">
+        <h1 class="navbar-item title ">Wall of Text</h1>
+        <span class="tag is-danger is-light is-small mb-4">Alpha</span>
+      </a>
+      <div class="navbar-item">
+        <a class="navbar-item" href="/board/list.html">Boards</a>
+      </div>
+    </div>
+  </nav>
+  <section class="section">
+    <div class="container" x-data="{ replyTo: '' }">
+      <div
+      class="box message is-primary"
+      id="form"
+      x-data="{ passphrase: '', body: '', sha256: async function(message) {
+        const msgBuffer = new TextEncoder().encode(message);
+        const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+        const hashArray = Array.from(new Uint8Array(hashBuffer))
+        const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        return hashHex;
+      }
+    }"
+    >
+    <div id="submit-message" class="message-header is-unselectable">
+      <p>
+        <i class="icon fas fa-message"></i
+          ><span
+          x-text="replyTo ? `Reply to Anonymous` : `Submit for /${searchParams.get('topic')}/`"
+          ></span>
+        </p>
+        <p><span class="m-2" x-text="replyTo && 'Cancel reply'"></span><button x-cloak x-bind:class="replyTo ? 'delete' : 'is-hidden'" x-on:click="replyTo = ''"></button></p>
+      </div>
+      <div class="message-body">
+        <!--<div class="field">
+          <label class="label">Passphrase [Not working]</label>
+          <div class="control has-icons-left has-icons-right">
+            <input
+            class="input"
+            type="password"
+            placeholder="Enter your passphrase"
+            x-model="passphrase"
+            />
+            <span class="icon is-small is-left">
+              <i class="fas fa-key"></i>
+            </span>
+          </div>
+        </div>-->
+        <div class="field">
+          <label class="label is-unselectable">Message</label>
+          <div class="control">
+            <textarea
+            class="textarea is-primary"
+            placeholder="Share your thoughts..."
+            x-model="body"
+            x-bind:class="body.length <= 255 || 'is-danger'"
+            ></textarea>
+            <p
+            class="mt-1 is-unselectable has-text-black"
+            x-text="`${body.length}/255`"
+            x-bind:class="body.length <= 255 || 'has-text-danger'"
+            ></p>
+          </div>
+        </div>
+        <div class="field">
+          <div class="control">
+            <p class="mb-2 has-text-black is-italic"><small>By publishing, you agree to the <a class="has-text-link" style="text-decoration-line: none;" href="/info/terms.html">Terms of Service</a>.</small></p>
+            <button
+            class="button is-primary"
+            x-on:click="
+            replyTo ?
+            await fetch(`https://<realtime-database-url>/boards/${searchParams.get('topic')}/${replyTo}/replies.json?print=silent`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ body: body, created: Date.now() })
+            }) :
+            await fetch(`https://<realtime-database-url>/boards/${searchParams.get('topic')}/${replyTo}/replies.json?print=silent`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ body: body, created: Date.now() })
+            })
+
+            window.location.reload()
+            "
+            x-bind:disabled="!(body.length <= 255 && body.length > 0)"
+            x-bind:title="!(body.length <= 255 && body.length > 0) ? 'Message must be between 1 and 255 characters' : ''"
+            >
+            Publish
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div
+  x-data="{ messages: async () => { 
+    const request = await fetch(`https://<realtime-database-url>/boards/${searchParams.get('topic')}.json`
+    try {return Object.entries(await request.json()).reverse()} catch {}
+  },
+  DateTime: luxon.DateTime
+}"
+class="container"
+id="articles"
+>
+<template x-for="item in messages">
+  <article class="box message is-link">
+    <div class="message-header" x-bind:id="item[0]">
+      <p>
+        @ Anonymous (<small
+        class="is-italic"
+        x-data="{diffedTime: 0}"
+        x-text="
+          diffedTime = DateTime.now().diff(DateTime.fromMillis(item[1].created))
+          if (diffedTime.toFormat('y') > 0)
+            return diffedTime.toFormat('y') + ' year(s) ago'
+          else if (diffedTime.toFormat('d') > 0)
+            return diffedTime.toFormat('d') + ' day(s) ago'
+          else if (diffedTime.toFormat('h') > 0)
+            return diffedTime.toFormat('h') + ' hour(s) ago'
+          else if (diffedTime.toFormat('m') > 0)
+            return diffedTime.toFormat('m') + ' minute(s) ago'
+          else
+            return diffedTime.toFormat('s') + ' second(s) ago'
+        "
+        ></small>)
+      </p>
+      <a
+      class="button is-link is-inverted"
+      href="#submit-message"
+      x-on:click="replyTo = item[0]"
+      >
+      <span class="icon is-small"
+      ><i class="fas fa-reply"></i
+        ></span>
+      </a>
+    </div>
+    <div class="message-body has-text-black">
+      <p x-text="item[1].body"></p>
+      <template x-data="{replies: () => {try{return Object.fromEntries(Object.entries(item[1].replies).reverse())} catch {}}}"
+        x-for="reply in replies">
+        <article class=" message is-link mt-3">
+          <div class="message-header">
+            <p>
+              Reply by: @ Anonymous (<small
+              class="is-italic"
+              x-data="{diffedTime: 0}"
+              x-text="
+                diffedTime = DateTime.now().diff(DateTime.fromMillis(reply.created))
+                if (diffedTime.toFormat('y') > 0)
+                  return diffedTime.toFormat('y') + ' year(s) ago'
+                else if (diffedTime.toFormat('d') > 0)
+                  return diffedTime.toFormat('d') + ' day(s) ago'
+                else if (diffedTime.toFormat('h') > 0)
+                  return diffedTime.toFormat('h') + ' hour(s) ago'
+                else if (diffedTime.toFormat('m') > 0)
+                  return diffedTime.toFormat('m') + ' minute(s) ago'
+                else
+                  return diffedTime.toFormat('s') + ' second(s) ago'
+              "
+              ></small>)
+            </p>
+          </div>
+          <div class="message-body has-text-black">
+            <p x-text="reply.body"></p>
+          </div>
+        </article>
+      </template>
+    </article>
+  </template>
+</div>
+</div>
+</section>
+<footer class="footer">
+  <div class="content has-text-centered">
+    <p>
+      Made with ❤ by
+      <a target="_blank" href="https://tastykiwi.ml/">Tasty Kiwi</a>. The
+      website's
+      <a href="https://github.com/Tasty-Kiwi/Wall-of-Text">source code</a>
+      is licensed under
+      <a target="_blank" href="https://dbad-license.org/"
+      >Don't Be a Dick Public License</a
+      >.
+    </p>
+    <p>
+      Powered by
+      <a target="_blank" href="https://firebase.google.com/">Firebase</a>,
+      <a target="_blank" href="https://bulma.io/">Bulma</a> and
+      <a target="_blank" href="https://moment.github.io/luxon/">Luxon</a>.
+    </p>
+    <p>
+      <a href="/info/terms.html">Terms of Service</a> &bullet;
+      <a href="/info/privacy.html">Privacy Policy</a>
+    </p>
+  </div>
+</footer>
+</body>
+</html>
